@@ -55,12 +55,11 @@ class PinProvider:
     RPI_GPIO = "RPI_GPIO"
     PCA9685 = "PCA9685"
     PIGPIO = "PIGPIO"
-
+    GPIO_AI = "GPIO"
 
 class PinScheme:
-    BOARD = "BOARD"  # board numbering
-    BCM = "BCM"      # broadcom gpio numbering
-
+    BOARD = "BBAI-64"  # board numbering
+    BCM = "GPIOTwo"      # broadcom gpio numbering
 
 #
 # #### Base interface for input/output/pwm pins
@@ -289,6 +288,12 @@ def input_pin_by_id(pin_id: str, pull: int = PinPull.PULL_NONE) -> InputPin:
     if parts[0] == PinProvider.PCA9685:
         raise RuntimeError("PinProvider.PCA9685 does not implement InputPin")
 
+    if parts[0] == PinProvider.GPIO_AI:
+        pin_provider = parts[0]
+        pin_scheme = parts[1]
+        pin_number = int(parts[2])
+        return input_pin(pin_provider, pin_number, pin_scheme=pin_scheme, pull=pull)
+
     if parts[0] == PinProvider.RPI_GPIO:
         pin_provider = parts[0]
         pin_scheme = parts[1]
@@ -320,6 +325,9 @@ def input_pin(
     :return: InputPin
     :except: RuntimeError if pin_provider is not valid.
     """
+    if pin_provider == PinProvider.GPIO_AI:
+        return InputPinGpio(pin_number, pin_scheme, pull)
+
     if pin_provider == PinProvider.RPI_GPIO:
         return InputPinGpio(pin_number, pin_scheme, pull)
     if pin_provider == PinProvider.PCA9685:
@@ -560,7 +568,10 @@ class PwmPinGpio(PwmPin):
 #
 # ----- PCA9685 implementations -----
 #
+#from PCA96xx import *
+
 class PCA9685:
+
     '''
     Pin controller using PCA9685 boards.
     This is used for most RC Cars.  This
@@ -569,17 +580,19 @@ class PCA9685:
     '''
     def __init__(self, busnum: int, address: int, frequency: int):
 
-        import Adafruit_PCA9685
+        import smbus2
         if busnum is not None:
-            from Adafruit_GPIO import I2C
+            from smbus2 import SMBus
+
+            bus = SMBus(5)
 
             # monkey-patch I2C driver to use our bus number
             def get_bus():
                 return busnum
 
-            I2C.get_default_bus = get_bus
-        self.pwm = Adafruit_PCA9685.PCA9685(address=address)
-        self.pwm.set_pwm_freq(frequency)
+            SMBus.get_default_bus = get_bus
+        self.pwm = SMBus()
+        self.pwm.DEFAULT_FREQUENCY(frequency)
         self._frequency = frequency
 
     def get_frequency(self):
