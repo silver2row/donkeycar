@@ -215,6 +215,7 @@ class PwmPin(ABC):
 # Use PCA9685 on bus 0 at address 0x40, channel 7
 # "PCA9685.0:40.7"
 #
+
 def output_pin_by_id(pin_id: str, frequency_hz: int = 60) -> OutputPin:
     """
     Select a ttl output pin given a pin id.
