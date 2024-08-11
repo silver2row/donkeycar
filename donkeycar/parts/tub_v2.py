@@ -6,8 +6,12 @@ import json
 
 import numpy as np
 from PIL import Image
+import logging
 
 from donkeycar.parts.datastore_v2 import Manifest, ManifestIterator
+
+
+logger = logging.getLogger(__name__)
 
 
 class Tub(object):
@@ -74,8 +78,7 @@ class Tub(object):
         # Private properties
         contents['_timestamp_ms'] = int(round(time.time() * 1000))
         contents['_index'] = self.manifest.current_index
-        contents['_session_id'] = self.manifest.session_id
-
+        contents['_session_id'] = self.manifest.session_id[1]
         self.manifest.write_record(contents)
 
     def delete_records(self, record_indexes):
@@ -92,6 +95,7 @@ class Tub(object):
         self.manifest.restore_records(record_indexes)
 
     def close(self):
+        logger.info(f'Closing tub {self.base_path}')
         self.manifest.close()
 
     def __iter__(self):
